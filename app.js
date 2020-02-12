@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require ('body-parser');
-const graphqlHttp = require ('express-graph-ql'); //import middleware function - take incoming request and forward them to resolvers
+const graphqlHttp = require ('express-graphql'); //import middleware function - take incoming request and forward them to resolvers
 const { buildSchema } = require ('graphql');
 
 const app = express();
@@ -13,13 +13,14 @@ app.use('/graphql', graphqlHttp({
     schema: buildSchema(`
    
     type RootQuery {
-
+       
+    events: [String!]!
 
     }
 
     type RootMutation{
 
-
+        createEvent(name: String) : String
     }
 
     schema {
@@ -30,10 +31,20 @@ app.use('/graphql', graphqlHttp({
     `),
     //all resolver functions that need to match our schema endpoints by name
     rootValue: {
-     
+     events: () =>{
+        return ['Hello', 'World','Welcome','to graphQL'];
+     },
 
-    }
+     createEvent: (args) =>{
+        const eventName=args.name;
+        return eventName;
 
-}))
+     }
+    },
+    graphiql:true
+    
+})
+
+);
 
 app.listen(3000);
