@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const graphqlHttp = require("express-graphql"); //import middleware function - take incoming request and forward them to resolvers
 const { buildSchema } = require("graphql");
 const mongoose = require("mongoose");
+const Event = require("./models/event.js");
 
 const app = express();
 const events = [];
@@ -51,21 +52,39 @@ app.use(
 		//all resolver functions that need to match our schema endpoints by name
 		rootValue: {
 			events: () => {
-				return events;
+				return Event.find()
+					.then(events => {
+						//since mongoDB returns metadata as well, we need to map it to new object for every events
+						return events.map(event => {
+							return { ...event._doc };
+						});
+					})
+					.catch(err => {
+						throw err;
+					});
 			},
 
 			createEvent: args => {
-				//event object
-				const event = {
-					_id: Math.random().toString(),
+				const event = new Event({
 					title: args.eventInput.title,
 					desc: args.eventInput.desc,
 					price: +args.eventInput.price,
-					date: args.eventInput.date
-				};
-				events.push(event);
+					date: new Date(args.eventInput.date)
+				});
+
+				//mongoDB functionality to save directly into db
 				//resolver always returns everything but graphql returns only data that the front end requests
-				return event;
+				//executes async operation and wait for it to complete and return our promise
+				return event
+					.save()
+					.then(result => {
+						console.log(result);
+						return { ...result._doc }; //return result property provide mongoose that makes up the event object
+					})
+					.catch(err => {
+						console.log(err);
+						throw err; //express graphQL can handle and return error
+					});
 			}
 		},
 		//graph ql GUI for development purpose
@@ -77,7 +96,7 @@ app.use(
 
 mongoose
 	.connect(
-		`mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0-xqb0p.mongodb.net/test`
+		`mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0-xqb0p.mongodb.net/${process.env.MONGO_DB}`
 	)
 	.then(() => {
 		//Promise to establish connection to Mongo cluster then start the server
