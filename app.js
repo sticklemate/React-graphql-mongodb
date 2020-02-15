@@ -17,16 +17,16 @@ app.use(
    
     type Event {
         _id: ID!
-        _title: String!
-        _desc:String!
-        _price:float!
-        _date:String! 
+        title: String!
+        desc:String!
+        price:Float!
+        date:String! 
     }
 
     input EventInput {
         title: String!
         desc:String!
-        price:float!
+        price:Float!
         date:String!
     }
 
@@ -50,14 +50,24 @@ app.use(
 		//all resolver functions that need to match our schema endpoints by name
 		rootValue: {
 			events: () => {
-				return ["Hello", "World", "Welcome", "to graphQL"];
+				return events;
 			},
 
 			createEvent: args => {
-				const eventName = args.name;
-				return eventName;
+				//event object
+				const event = {
+					_id: Math.random().toString(),
+					title: args.eventInput.title,
+					desc: args.eventInput.desc,
+					price: +args.eventInput.price,
+					date: args.eventInput.date
+				};
+				events.push(event);
+				//resolver always returns everything but graphql returns only data that the front end requests
+				return event;
 			}
 		},
+		//graph ql GUI for development purpose
 		graphiql: true
 	})
 );
