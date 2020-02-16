@@ -1,9 +1,16 @@
+/* This is graphql test application v 1.0
+Main file containing logic for graphQL including query and mutation functions
+Need to refactor the promises with async await 
+*/
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const graphqlHttp = require("express-graphql"); //import middleware function - take incoming request and forward them to resolvers
 const { buildSchema } = require("graphql");
 const mongoose = require("mongoose");
-const Event = require("./models/event.js");
+const Event = require("./models/event");
+const User = require("./models/users");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 const events = [];
@@ -25,6 +32,12 @@ app.use(
         date:String! 
     }
 
+	type User {
+		_id: ID!
+		email: String!
+		password:String
+	}
+
     input EventInput {
         title: String!
         desc:String!
@@ -32,6 +45,10 @@ app.use(
         date:String!
     }
 
+	input UserInput {
+		email: String!
+		password: String!
+	}
     type RootQuery {
        
     events: [Event!]!
@@ -40,7 +57,8 @@ app.use(
 
     type RootMutation{
 
-        createEvent(eventInput: EventInput) : Event
+		createEvent(eventInput: EventInput) : Event
+		createUser(userInput:UserInput): User
     }
 
     schema {
@@ -84,6 +102,32 @@ app.use(
 					.catch(err => {
 						console.log(err);
 						throw err; //express graphQL can handle and return error
+					});
+			},
+
+			createUser: args => {
+				return User.findOne({ email: args.userInput.email })
+					.then(user => {
+						if (user) {
+							throw new Error("User exists already");
+						}
+						/*Added extra security to hash password as it will probably not be required to retrieve anywhere. 
+					If at all it is needed, then remove the null overide in the then function while returning the result*/
+						return bcrypt.hash(args.userInput.password, 12);
+					})
+					.then(hashedPassword => {
+						//promise for successfull hashing of pwd with 12 rounds of salt value
+						const user = new User({
+							email: args.userInput.email,
+							password: hashedPassword
+						});
+						return user.save();
+					})
+					.then(result => {
+						return { ...result._doc, password: null, _id: result.id };
+					})
+					.catch(err => {
+						throw err;
 					});
 			}
 		},
