@@ -87,8 +87,11 @@ app.use(
 					title: args.eventInput.title,
 					desc: args.eventInput.desc,
 					price: +args.eventInput.price,
-					date: new Date(args.eventInput.date)
+					date: new Date(args.eventInput.date),
+					creator: "5e4932b40696963db8da4ca7"
 				});
+
+				let createdEvent;
 
 				//mongoDB functionality to save directly into db
 				//resolver always returns everything but graphql returns only data that the front end requests
@@ -96,8 +99,22 @@ app.use(
 				return event
 					.save()
 					.then(result => {
+						createdEvent = { ...result._doc };
+						return User.findById("5e4932b40696963db8da4ca7");
 						console.log(result);
-						return { ...result._doc }; //return result property provide mongoose that makes up the event object
+						//return result property to provide mongoose that makes up the event object
+					})
+					.then(user => {
+						//if user does not exists
+						if (!user) {
+							throw new Error("User not found");
+						}
+						user.createdEvents.push(event);
+						return user.save();
+					})
+					.then(result => {
+						//once user is added
+						return createdEvent;
 					})
 					.catch(err => {
 						console.log(err);
