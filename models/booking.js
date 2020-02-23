@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
-const Schema = mongoose.Scehma; // schema constructor that mongoose provides
+const Schema = mongoose.Schema; // schema constructor that mongoose provides
 
 const bookingSchema = new Schema(
 	{
 		event: {
-			type: Scehma.Types.ObjectId,
+			type: Schema.Types.ObjectId,
 			ref: "Event"
 		},
 		user: {
