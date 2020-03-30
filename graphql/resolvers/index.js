@@ -3,19 +3,22 @@ const Event = require("../../models/event");
 const User = require("../../models/users");
 const Booking = require("../../models/booking");
 
+const transformEvent = event => {
+	return {
+		...event._doc,
+		_id: event.id,
+		date: new Date(event._doc.date).toISOString(),
+		creator: user.bind(this, event.creator)
+	};;
+};
+
 const event = async eventIds => {
 	try {
 		const event = await Event.find({ _id: { $in: eventIds } });
 
 		return event.map(event => {
-			return {
-				...event._doc,
-				_id: event.id,
-				date: new Date(event._doc.date).toISOString(),
-				creator: user.bind(this, event.creator)
-			};
+			return transformEvent(event);
 		});
-		
 	} catch (err) {
 		throw err;
 	}
@@ -25,11 +28,7 @@ const event = async eventIds => {
 const singleEvent = async eventId => {
 	try {
 		const event = await Event.findById(eventId);
-		return {
-			...event._doc,
-			_id: eventId,
-			creator: user.bind(this, event.creator)
-		};
+		return transformEvent(event);
 	} catch (err) {
 		throw err;
 	}
@@ -43,7 +42,7 @@ const user = async userId => {
 		return {
 			...user._doc,
 			_id: user.id,
-			createdEvents: event.bind(this, user._doc.createdEvents)
+			createdEvents: event.bind(this, user._doc.createdEvents) //binding create events to event function
 		};
 	} catch (err) {
 		throw err;
@@ -57,12 +56,7 @@ module.exports = {
 
 			//since mongoDB returns metadata as well, we need to map it to new object for every events
 			return events.map(event => {
-				return {
-					...event._doc,
-					_id: event.id,
-					date: new Date(event._doc.date).toISOString(),
-					creator: user.bind(this, event._doc.creator)
-				};
+				return transformEvent(event);
 			});
 		} catch (err) {
 			throw err;
@@ -103,11 +97,7 @@ module.exports = {
 			//executes async operation and wait for it to complete and return our promise
 			const result = await event.save();
 
-			createdEvent = {
-				...result._doc,
-				date: new Date(event._doc.date).toISOString(),
-				creator: user.bind(this, result._doc.creator)
-			};
+			createdEvent = transformEvent(result);
 
 			const creator = await User.findById("5e511b0b03e1ad0778cedc4e");
 			console.log(result);
@@ -172,11 +162,7 @@ module.exports = {
 		try {
 			//get the booked event
 			const booking = await Booking.findById(args.bookingId).populate("event");
-			const event = {
-				...booking.event._doc,
-				_id: booking.event.id,
-				creator: user.bind(this, booking.event._doc.creator)
-			};
+			const event = transformEvent(booking.event); //._doc is not required as fields of entity stored in db is available on top level element
 			await Booking.deleteOne({ _id: args.bookingId });
 			return event;
 			return;
